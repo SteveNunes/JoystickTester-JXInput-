@@ -1,5 +1,8 @@
 package application;
 
+import java.awt.Point;
+import java.awt.Rectangle;
+
 import com.github.strikerx3.jxinput.XInputAxes;
 import com.github.strikerx3.jxinput.XInputButtons;
 import com.github.strikerx3.jxinput.XInputComponents;
@@ -8,7 +11,6 @@ import com.github.strikerx3.jxinput.enums.XInputButton;
 import com.github.strikerx3.jxinput.listener.SimpleXInputDeviceListener;
 import com.github.strikerx3.jxinput.listener.XInputDeviceListener;
 
-import gameutil.GameTools;
 import gui.util.CanvasUtils;
 import gui.util.ImageUtils;
 import javafx.event.EventHandler;
@@ -23,7 +25,6 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
 import javafx.stage.Stage;
-import objmoveutils.Position;
 import util.Misc;
 
 public class JoyInfo {
@@ -42,6 +43,7 @@ public class JoyInfo {
 	private int joyID;
 	private long bpsCTime;
 	private boolean resized;
+	private boolean hideInfos;
 	private boolean close;
 	
 	public JoyInfo(Stage stage, XInputDevice14 joystick, int joyID) {
@@ -49,13 +51,14 @@ public class JoyInfo {
 		this.joyID = joyID;
 		loadJoystickEvents();
 		close = false;
+		hideInfos = false;
 		bps = 0;
 		bps2 = 0;
 		maxBps = 0;
 		bpsCTime = System.currentTimeMillis();
 		mainStage = stage;
 		root = new Group();
-		joyImage = ImageUtils.removeBgColor(new Image("joystick.png"), (Color)Paint.valueOf("#FF00FF"));
+		joyImage = ImageUtils.removeBgColor(new Image("joystick.png"), (Color)Paint.valueOf("#FF00FF")); 
 		mainCanvas = new Canvas(joyImage.getWidth(),joyImage.getHeight() - 55);
 		mainCanvas.getGraphicsContext2D().setEffect(new BoxBlur(1, 1, 0));
 		drawCanvas = new Canvas(joyImage.getWidth(),joyImage.getHeight() - 55);
@@ -68,6 +71,8 @@ public class JoyInfo {
 		mainStage.setResizable(false);
 		mainStage.setScene(mainScene);
 		mainScene.setOnKeyPressed(event -> {
+			if (event.getCode() == KeyCode.MULTIPLY)
+				hideInfos = !hideInfos; 
 			if (event.getCode() == KeyCode.SPACE)
 				Main.reallign();
 			if (event.getCode() == KeyCode.ESCAPE)
@@ -104,9 +109,9 @@ public class JoyInfo {
 			public void handle(MouseEvent event) {
 				int x = (int)(event.getX() / Main.getZoom());
 				int y = (int)(event.getY() / Main.getZoom());
-				if (Position.coordIsInsideOfARectangle(x, y, 15, 275, 100, 20))
+				if (new Rectangle(15, 275, 100, 20).contains(new Point(x, y)))
 					joystick.setVibration(65535, 0);
-				if (Position.coordIsInsideOfARectangle(x, y, drawCanvas.getWidth() - 115, 275, 100, 20))
+				if (new Rectangle((int)drawCanvas.getWidth() - 115, 275, 100, 20).contains(new Point(x, y)))
 					joystick.setVibration(0, 65535);
 			}
 		});
@@ -137,10 +142,13 @@ public class JoyInfo {
 	}
 
 	private void mainLoop() {
+		int incy = hideInfos ? 25 : 0;
 		drawGC.setFill(Color.BLACK);
-		drawGC.fillRect(0,  0, (int)mainCanvas.getWidth(), (int)mainCanvas.getHeight());
+		drawGC.fillRect(0, 0, (int)drawCanvas.getWidth(), (int)drawCanvas.getHeight());
 		drawGC.setFill(Paint.valueOf("#B97A57"));
-		drawGC.fillRect(0,  270, (int)mainCanvas.getWidth(), (int)mainCanvas.getHeight() - 270);
+		if (hideInfos)
+			drawGC.fillRect(0, 0, (int)drawCanvas.getWidth(), incy);
+		drawGC.fillRect(0, 270, (int)drawCanvas.getWidth(), (int)drawCanvas.getHeight() - 270);
 		drawGC.setLineWidth(3);
 		joystick.poll();
 		XInputComponents components = joystick.getComponents();
@@ -148,70 +156,72 @@ public class JoyInfo {
 		XInputAxes axes = components.getAxes();
 		// DPADS
 		drawGC.setFill(buttons.up ? Color.GREEN : Color.BLACK);
-		drawPolygon(drawGC, 76, 78, 108, 78, 108, 106, 92, 127, 76, 106);
+		drawPolygon(drawGC, 76, incy + 78, 108, incy + 78, 108, incy + 106, 92, incy + 127, 76, incy + 106);
 		drawGC.setFill(buttons.right ? Color.GREEN : Color.BLACK);
-		drawPolygon(drawGC, 140, 112, 112, 112, 92, 127, 112, 142, 140, 142);
+		drawPolygon(drawGC, 140, incy + 112, 112, incy + 112, 92, incy + 127, 112, incy + 142, 140, incy + 142);
 		drawGC.setFill(buttons.down ? Color.GREEN : Color.BLACK);
-		drawPolygon(drawGC, 76, 174, 76, 146, 92, 127, 108, 146, 108, 174);
+		drawPolygon(drawGC, 76, incy + 174, 76, incy + 146, 92, incy + 127, 108, incy + 146, 108, incy + 174);
 		drawGC.setFill(buttons.left ? Color.GREEN : Color.BLACK);
-		drawPolygon(drawGC, 44, 110, 70, 110, 92, 127, 70, 142, 44, 142);
+		drawPolygon(drawGC, 44, incy + 110, 70, incy + 110, 92, incy + 127, 70, incy + 142, 44, incy + 142);
 		// BACK and SELECT
 		drawGC.setFill(buttons.back ? Color.GREEN : Color.BLACK);
-		drawGC.fillRect(157, 56, 19, 33);
+		drawGC.fillRect(157, incy + 56, 19, 33);
 		drawGC.setFill(buttons.start ? Color.GREEN : Color.BLACK);
-		drawGC.fillRect(376, 56, 19, 33);
+		drawGC.fillRect(376, incy + 56, 19, 33);
 		// PS (If available)
 		if (XInputDevice14.isGuideButtonSupported()) {
 			drawGC.setFill(buttons.guide ? Color.GREEN : Color.BLACK);
-			drawGC.fillRect(255, 194, 41, 41);
+			drawGC.fillRect(255, incy + 194, 41, 41);
 		}
 		// L/R SHOULDERS
 		drawGC.setFill(buttons.lShoulder ? Color.GREEN : Color.BLACK);
-		drawGC.fillRect(64, 26, 63, 17);
+		drawGC.fillRect(64, incy + 26, 63, 17);
 		drawGC.setFill(buttons.rShoulder ? Color.GREEN : Color.BLACK);
-		drawGC.fillRect(421, 26, 63, 17);
+		drawGC.fillRect(421, incy + 26, 63, 17);
 		// L/R TRIGGERS
 		drawGC.setFill(axes.lt > 0 ? Color.GREEN : Color.BLACK);
-		drawGC.fillRect(66, 6, 61 * axes.lt, 17);
+		drawGC.fillRect(66, incy + 6, 61 * axes.lt, 17);
 		drawGC.setFill(axes.rt > 0 ? Color.GREEN : Color.BLACK);
-		drawGC.fillRect(423, 6, 61 * axes.rt, 17);
+		drawGC.fillRect(423, incy + 6, 61 * axes.rt, 17);
 		// X, CIRCLE, SQUARE and TRIANGLE
 		drawGC.setFill(buttons.a ? Color.GREEN : Color.BLACK);
-		drawGC.fillRect(438, 148, 41, 41);
+		drawGC.fillRect(438, incy + 148, 41, 41);
 		drawGC.setFill(buttons.b ? Color.GREEN : Color.BLACK);
-		drawGC.fillRect(479, 107, 41, 41);
+		drawGC.fillRect(479, incy + 107, 41, 41);
 		drawGC.setFill(buttons.x ? Color.GREEN : Color.BLACK);
-		drawGC.fillRect(397, 107, 41, 41);
+		drawGC.fillRect(397, incy + 107, 41, 41);
 		drawGC.setFill(buttons.y ? Color.GREEN : Color.BLACK);
-		drawGC.fillRect(438, 66, 41, 41);
+		drawGC.fillRect(438, incy + 66, 41, 41);
 
-		drawGC.drawImage(joyImage, 0, 0, 550, 275, 0, 0, 550, 275);
+		drawGC.drawImage(joyImage, 0, 0, 550, 275, 0, incy, 550, 275);
 		// X/Y AXES
-		drawGC.drawImage(joyImage, 66, 291, 72, 72, 141 + axes.lx * 28, 170 - axes.ly * 28, 72, 72);
-		drawGC.drawImage(joyImage, 66, 291, 72, 72, 339 + axes.rx * 28, 170 - axes.ry * 28, 72, 72);
+		drawGC.drawImage(buttons.lThumb ? ImageUtils.tintImage(joyImage, Color.GREEN, 0.5f) : joyImage, 66, 291, 71, 72, 141 + axes.lx * 28, incy + 170 - axes.ly * 28, 72, 72);
+		drawGC.drawImage(buttons.rThumb ? ImageUtils.tintImage(joyImage, Color.GREEN, 0.5f) : joyImage, 66, 291, 71, 72, 339 + axes.rx * 28, incy + 170 - axes.ry * 28, 72, 72);
 		// X/Y AXES and L/R TRIGGERS VALUES
-		drawText(String.format("X: %.3f\nY: %.3f", axes.lx, axes.ly), Color.BLACK, 155, 290);
-		drawText(String.format("X: %.3f\nY: %.3f", axes.rx, axes.ry), Color.BLACK, 353, 290);
-		drawText(String.format("Value: %.3f", axes.lt), Color.BLACK, 135, 20);
-		drawText(String.format("Value: %.3f", axes.rt), Color.BLACK, 350, 20);
-		// Test motors
-		drawGC.setFill(Color.DARKOLIVEGREEN);
-		drawGC.fillRect(15, 275, 100, 20);
-		drawGC.setStroke(Color.BLACK);
-		drawGC.strokeRect(15, 275, 100, 20);
-		drawText("Test left motor", Color.BLACK, 27, 289);
-		drawGC.setFill(Color.DARKOLIVEGREEN);
-		drawGC.fillRect(drawCanvas.getWidth() - 115, 275, 100, 20);
-		drawGC.setStroke(Color.BLACK);
-		drawGC.strokeRect(drawCanvas.getWidth() - 115, 275, 100, 20);
-		drawText("Test right motor", Color.BLACK, (int)drawCanvas.getWidth() - 110, 289);
+		if (!hideInfos) {
+			drawText(String.format("X: %.3f\nY: %.3f", axes.lx, axes.ly), Color.BLACK, 155, 290);
+			drawText(String.format("X: %.3f\nY: %.3f", axes.rx, axes.ry), Color.BLACK, 353, 290);
+			drawText(String.format("Value: %.3f", axes.lt), Color.BLACK, 135, 20);
+			drawText(String.format("Value: %.3f", axes.rt), Color.BLACK, 350, 20);
+			// Test motors
+			drawGC.setFill(Color.DARKOLIVEGREEN);
+			drawGC.fillRect(15, 275, 100, 20);
+			drawGC.setStroke(Color.BLACK);
+			drawGC.strokeRect(15, 275, 100, 20);
+			drawText("Test left motor", Color.BLACK, 27, 289);
+			drawGC.setFill(Color.DARKOLIVEGREEN);
+			drawGC.fillRect(drawCanvas.getWidth() - 115, 275, 100, 20);
+			drawGC.setStroke(Color.BLACK);
+			drawGC.strokeRect(drawCanvas.getWidth() - 115, 275, 100, 20);
+			drawText("Test right motor", Color.BLACK, (int)drawCanvas.getWidth() - 110, 289);
+		}
 
 		if (!resized) {
 			resized = true;
 			mainCanvas.setWidth(drawCanvas.getWidth() * Main.getZoom());
 			mainCanvas.setHeight(drawCanvas.getHeight() * Main.getZoom());
-			mainStage.setWidth(drawCanvas.getWidth() * Main.getZoom() + 10);
-			mainStage.setHeight(drawCanvas.getHeight() * Main.getZoom() + 20);
+			mainStage.setWidth(mainCanvas.getWidth() + 14);
+			mainStage.setHeight(mainCanvas.getHeight() + 36);
 		}
 		
 		CanvasUtils.copyCanvas(drawCanvas, mainCanvas);
@@ -227,7 +237,7 @@ public class JoyInfo {
 	 	Misc.sleep(1);
 	 	
 	 	if (!close)
-	 		GameTools.callMethodAgain(e -> mainLoop());
+	 		Misc.runLater(() -> mainLoop());
 	 	else
 	 		mainStage.close();
 	}

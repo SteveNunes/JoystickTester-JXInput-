@@ -65,7 +65,7 @@ public class Main extends Application {
 		{ return zoom; }
 
 	public static void decreaseZoom() {
-		if (zoom > 0.25f) {
+		if (zoom > 0.5f) {
 			zoom /= 2;
 			for (JoyInfo j : joyInfos)
 				j.setResized(false);
@@ -74,7 +74,8 @@ public class Main extends Application {
 	}
 
 	public static void increaseZoom() {
-		zoom *= 2;
+		if (zoom < 2)
+			zoom *= 2;
 		for (JoyInfo j : joyInfos)
 			j.setResized(false);
 		setMaxWindowSize();
