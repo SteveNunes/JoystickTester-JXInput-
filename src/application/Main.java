@@ -1,25 +1,35 @@
 package application;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import com.github.strikerx3.jxinput.XInputDevice14;
 import com.github.strikerx3.jxinput.exceptions.XInputNotLoadedException;
 
+import gui.util.ImageUtils;
 import javafx.application.Application;
+import javafx.scene.image.WritableImage;
 import javafx.stage.Stage;
+import util.FindFile;
 
 public class Main extends Application {
 	
-	private static List<JoyInfo> joyInfos = new ArrayList<>();
-	private static float zoom = 0.5f;
-	private static int maxWindowWidth = 0;
-	private static int maxWindowHeight = 0;
-	private static boolean sideBySide = false;
+	static List<JoyInfo> joyInfos = new ArrayList<>();
+	static float zoom = 0.5f;
+	static int maxWindowWidth = 0;
+	static int maxWindowHeight = 0;
+	static boolean sideBySide = false;
+	static boolean close = false;
+	public static Map<Integer, WritableImage> buttonsImages;
 
 	@Override
 	public void start(Stage stage) {
 		try {
+			buttonsImages = new HashMap<>();
+			FindFile.findFile(".\\images\\inputs\\","*").forEach(e ->
+				buttonsImages.put(Integer.parseInt(e.getName().replace(".png", "")), ImageUtils.loadWritableImageFromFile(e)));
 			XInputDevice14 devices[] = XInputDevice14.getAllDevices();
 			for (int n = 0; n < devices.length && n == 0; n++)
 				joyInfos.add(new JoyInfo(new Stage(), devices[n], n));
@@ -31,7 +41,7 @@ public class Main extends Application {
 		}
 	}
 	
-	private static void setMaxWindowSize() {
+	static void setMaxWindowSize() {
 		maxWindowWidth = 0;
 		maxWindowHeight = 0;
 		for (JoyInfo ji : joyInfos) {
@@ -42,7 +52,7 @@ public class Main extends Application {
 		}
 	}
 	
-	public static void reallign() {
+	static void reallign() {
 		int x = 0, y = 0;
 		for (JoyInfo j : joyInfos) {
 			j.setWindowsPos(x, y);
@@ -52,19 +62,22 @@ public class Main extends Application {
 		sideBySide = !sideBySide;
 	}
 	
-	public static void close() {
-		for (JoyInfo j : joyInfos)
-			j.close();
+	static void close() {
+		if (!close) {
+			close = true;
+			for (JoyInfo j : joyInfos)
+				j.close();
+		}
 	}
 	
 	public static void main(String[] args) {
 		launch(args);
 	}
 
-	public static double getZoom()
+	static double getZoom()
 		{ return zoom; }
 
-	public static void decreaseZoom() {
+	static void decreaseZoom() {
 		if (zoom > 0.5f) {
 			zoom /= 2;
 			for (JoyInfo j : joyInfos)
@@ -73,7 +86,7 @@ public class Main extends Application {
 		}
 	}
 
-	public static void increaseZoom() {
+	static void increaseZoom() {
 		if (zoom < 2)
 			zoom *= 2;
 		for (JoyInfo j : joyInfos)
